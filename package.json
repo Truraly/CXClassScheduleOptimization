@@ -1,18 +1,18 @@
 {
-  "name": "cxkb",
-  "version": "1.0.0",
-  "description": "油猴插件\r - 支持优化显示\r - 支持下载",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "jsdom": "^22.1.0"
-  }
+    "name": "cxkb",
+    "version": "1.0.0",
+    "description": "油猴插件\r - 支持优化显示\r - 支持下载",
+    "main": "index.js",
+    "directories": {
+        "test": "test"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "Truraly",
+    "license": "AGPL-3.0",
+    "dependencies": {
+        "jsdom": "^22.1.0"
+    }
 }
