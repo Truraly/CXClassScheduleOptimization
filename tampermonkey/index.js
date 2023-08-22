@@ -13,11 +13,17 @@
 
 // 内层的iframe对象
 let iframe_n_Document = null
+let captionStr = ''
 // 定时器，每秒扫描一次iframe
 let timer = setInterval(() => {
-    console.log("扫描iframe...")
+    // console.log("扫描iframe...")
     let iframe = document.querySelectorAll("iframe")
-    iframe.forEach((item, index) => {
+    if (iframe.length == 0) return
+    // console.log("iframe", iframe)
+    let ifkb = false
+        // 用来判断是否是课表页面
+    for(let i = 0; i < iframe.length; i++) {
+        const item = iframe[i]
         try {
             let iframeDocument = (item.contentWindow || item.contentDocument);
             if (iframeDocument.document) iframeDocument = iframeDocument.document;
@@ -28,37 +34,47 @@ let timer = setInterval(() => {
             if (caption) {
                 let str = caption.innerHTML
                 if (str.includes("课表")) {
-                    // 如果已经存在，就仅修改iframe_n_Document = iframeDocument
                     iframe_n_Document = iframeDocument
-                    if (document.querySelector("#iframe_n")) return
-                    // iframe_n_Document = iframeDocument
-                    console.log("课表页面")
-                    // 创建一个按钮
-                    let btn = document.createElement("button")
-                    btn.innerHTML = "显示优化"
-                    btn.style = "position: fixed; top: 0; right: 0; z-index: 9999;"
-
-                    // 给按钮添加点击事件
-                    btn.onclick = optimize
-                    // id="iframe_n"
-                    btn.setAttribute("id", "iframe_n")
-                    document.body.appendChild(btn)
-
-                    // 下载按钮
-                    let btn2 = document.createElement("button")
-                    btn2.innerHTML = "下载课表"
-                    btn2.style = "position: fixed; top: 0; right: 100px; z-index: 9999;"
-                    btn2.onclick = download
-                    document.body.appendChild(btn2)
-
+                    captionStr = str.replace(/\<span.*\<\/span\>/g, '').replace(/&nbsp;/g, '').replace(/ /g, "_")
+                    ifkb = true
+                    break
                 }
             }
-        }
-        catch (e) {
+        } catch (e) {
             console.log("err")
         }
-    })
+    }
 
+    // 如果是课表页面，就显示优化按钮
+    if (ifkb) {
+        // 如果已经有按钮了，就不添加了
+        if (document.querySelector(".iframe_n_ty")) return
+        console.log("课表页面")
+        // 创建一个按钮
+        let btn = document.createElement("button")
+        btn.innerHTML = "课表显示优化"
+        btn.style = "position: fixed; top: 0; right: 0; z-index: 9999;"
+
+        // 给按钮添加点击事件
+        btn.onclick = optimize
+        // id="iframe_n"
+        btn.setAttribute("class", "iframe_n_ty")
+        document.body.appendChild(btn)
+
+        // 下载按钮
+        let btn2 = document.createElement("button")
+        btn.setAttribute("class", "iframe_n_ty")
+        btn2.innerHTML = "下载当前课表"
+        btn2.style = "position: fixed; top: 0; right: 100px; z-index: 9999;"
+        btn2.onclick = download
+        document.body.appendChild(btn2)
+    } else {
+        // 删除class = iframe_n_ty的按钮
+        let btns = document.querySelectorAll(".iframe_n_ty")
+        for (let i = 0; i < btns.length; i++) {
+            btns[i].remove()
+        }
+    }
 }, 1000)
 
 // 优化显示
@@ -66,14 +82,12 @@ function optimize() {
     // iframe_n 
     // 获取table
     let table = iframe_n_Document.querySelector("table")
-    // 删除里面的caption
-
     // 保留第一个table，在下面添加19个周的课表，里面的caption不要
-    let table2 = table.cloneNode(true)
-    table2.querySelector("caption").remove()
+    let tableCopy = table.cloneNode(true)
+    tableCopy.querySelector("caption").remove()
     // console.log(table2.innerHTML)
-    // 删除前8个td
-    let trs = table2.querySelectorAll("tr")
+    // 删除前8个td/th
+    let trs = tableCopy.querySelectorAll("tr")
     for (let i = 0; i < trs.length; i++) {
         const tr = trs[i]
         let tds = tr.querySelectorAll("td")
@@ -86,29 +100,24 @@ function optimize() {
     }
     // console.log(table2.innerHTML)
 
+    // 创建19个课表数组
     let courseL = []
     for (let i = 0; i < 19; i++) {
         // courseL.push(`<table border="1">${table2.innerHTML}</table>`)
         // 创建一个table
         let table3 = document.createElement("table")
         table3.setAttribute("border", "1")
-        table3.innerHTML = table2.innerHTML
+        table3.innerHTML = tableCopy.innerHTML
         courseL.push(table3)
     }
 
-
-    // 对于每周的课表，删除当前周不上的课，然后存到html字符串里，最后一起写入文件
+    // 对于每周的课表，删除当前周不上的课
     for (let i = 0; i < courseL.length; i++) {
-        // let doc = new JSDOM(courseL[i]).window.document
-        console.log("courseL[i]", courseL[i])
-        // let divs = doc.querySelectorAll("div")
+        // console.log("courseL[i]", courseL[i])
         let divs = courseL[i].querySelectorAll("div")
-
         for (let j = 0; j < divs.length; j++) {
             let div = divs[j]
-            // let str = div.textContent
             let str = div.innerHTML
-
             let strArr = str.split("<hr>")
             let strArr2 = []
             for (let k = 0; k < strArr.length; k++) {
@@ -117,39 +126,36 @@ function optimize() {
                     strArr2.push(str2)
                 }
             }
-            console.log("strArr2", strArr2)
+            // console.log("strArr2", strArr2)
             div.innerHTML = strArr2.join("<hr>")
-            console.log("div.innerHTML", div.innerHTML)
+            // console.log("div", div)
         }
         // courseL[i] = doc.querySelector("table").outerHTML
         // courseL[i] = courseL[i].outerHTML
     }
-    console.log("courseL", courseL)
+    // console.log("courseL", courseL)
     // 将这些课表显示在原来课表的下面
     // 获取table
     let table4 = iframe_n_Document.querySelector("table")
-    console.log("table4", table4)
+    // 如果原来这个课表后面就有table，就删除
+    let tables = iframe_n_Document.querySelectorAll("table")
+    for (let i = 1; i < tables.length; i++) { tables[i].remove() }
+    // console.log("table4", table4)
     courseL.forEach((item, index) => {
-        // 创建一个table
-        let table5 = document.createElement("table")
-        table5.setAttribute("border", "1")
         // 标题
         let H1 = document.createElement("h1")
         H1.innerHTML = `第${index + 1}周`
-        table5.appendChild(H1)
-        console.log("item", item)
-        // 添加table
-        table5.appendChild(item)
-        table4.parentNode.appendChild(table5)
+        item.insertBefore(H1, item.firstChild)
+        // console.log("item", item)
+        table4.parentNode.appendChild(item)
     })
 
 }
 
 
-
-// // 判断是否是本周的课
+// 判断是否是本周的课
 function ifthisweek(courseStr, week) {
-    console.log("courseStr", courseStr)
+    // console.log("courseStr", courseStr)
     // 7-14周(双) 
     let weekStr = courseStr.match(/\d+\-\d+周 *[\(\)单双]*/g)[0]
     // console.log("weekStr", weekStr)
@@ -180,20 +186,19 @@ function download() {
     let tables = iframe_n_Document.querySelectorAll("table")
     let str_all = ""
     for (let i = 0; i < tables.length; i++) {
+        // 第一个需要额外添加
+        if (i == 0) tables[i].setAttribute("border", "1")
         const table = tables[i]
         console.log("table", table)
-        str_all += `<table border="1">${table.innerHTML}</table><br>`
+        str_all += `${table.outerHTML}<br>`
     }
     // 在web中生成可供下载的文件   
-    // let str_all = ""
-    // for (let i = 0; i < courseL.length; i++) {
-    //     str_all += `<h1>第${i + 1}周</h1>` + courseL[i].innerHTML + `<br>`
-    // }
-    const file = new File([str_all], "课表.html", {
+    const fname = `${captionStr}${new Date().valueOf()}.html`
+    const file = new File([str_all], fname, {
         type: "text/plain",
     })
     const a = document.createElement("a")
     a.href = URL.createObjectURL(file)
-    a.download = "课表.html"
+    a.download = fname
     a.click()
 }
